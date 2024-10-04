@@ -1,101 +1,211 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { format, differenceInSeconds } from 'date-fns';
+import { Clock, Calendar, DollarSign, User } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+type Employee = {
+  name: string;
+  position: string;
+  imageUrl: string;
+};
+
+export default function Component() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [clockInTime, setClockInTime] = useState<Date | null>(null);
+  const [clockOutTime, setClockOutTime] = useState<Date | null>(null);
+  const [totalWorkedToday, setTotalWorkedToday] = useState(0);
+  const [weeklyHours, setWeeklyHours] = useState<number[]>([0, 0, 0, 0, 0]);
+  const [hourlyRate, setHourlyRate] = useState(15);
+  const [employee, setEmployee] = useState<Employee>({
+    name: 'Temuulen Undrakhbayar',
+    position: 'Software Developer',
+    imageUrl: 'https://avatars.githubusercontent.com/u/75017829?v=4',
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let workedInterval: NodeJS.Timeout | null = null;
+    if (clockInTime && !clockOutTime) {
+      workedInterval = setInterval(() => {
+        setTotalWorkedToday((prevTotal) => prevTotal + 1);
+      }, 1000);
+    }
+    return () => {
+      if (workedInterval) clearInterval(workedInterval);
+    };
+  }, [clockInTime, clockOutTime]);
+
+  const handleClockIn = () => {
+    const now = new Date();
+    setClockInTime(now);
+    setClockOutTime(null);
+    setTotalWorkedToday(0);
+  };
+
+  const handleClockOut = () => {
+    const now = new Date();
+    setClockOutTime(now);
+    if (clockInTime) {
+      const todayIndex = now.getDay() - 1;
+      if (todayIndex >= 0 && todayIndex < 5) {
+        const workedToday = differenceInSeconds(now, clockInTime) / 3600;
+        setWeeklyHours((prev) => {
+          const newWeekly = [...prev];
+          newWeekly[todayIndex] = workedToday;
+          return newWeekly;
+        });
+      }
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes
+      .toString()
+      .padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const calculateDailyEarnings = () => {
+    return ((totalWorkedToday / 3600) * hourlyRate).toFixed(2);
+  };
+
+  const calculateWeeklyEarnings = () => {
+    return weeklyHours
+      .reduce((total, hours) => total + hours * hourlyRate, 0)
+      .toFixed(2);
+  };
+
+  const isWorkingHours =
+    currentTime.getHours() >= 9 && currentTime.getHours() < 17;
+  const isWeekday = currentTime.getDay() > 0 && currentTime.getDay() < 6;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <main className='flex min-h-screen flex-col items-center justify-center'>
+      <Card className='w-full max-w-md mx-auto'>
+        <CardHeader>
+          <CardTitle className='text-2xl font-bold'>
+            Tardy - Working Time Tracker
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <div className='flex items-center space-x-4'>
+            <Avatar className='h-20 w-20'>
+              <AvatarImage src={employee.imageUrl} alt={employee.name} />
+              <AvatarFallback>
+                {employee.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className='text-xl font-semibold'>{employee.name}</h2>
+              <p className='text-sm text-muted-foreground'>
+                {employee.position}
+              </p>
+            </div>
+          </div>
+          <div className='text-center'>
+            <div className='text-4xl font-bold mb-2' aria-live='polite'>
+              {format(currentTime, 'HH:mm:ss')}
+            </div>
+            <p className='text-sm text-muted-foreground'>
+              <Calendar className='inline mr-2 h-4 w-4' />
+              {format(currentTime, 'EEEE, MMMM do yyyy')}
+            </p>
+          </div>
+          <div className='flex justify-center space-x-2'>
+            <Button
+              onClick={handleClockIn}
+              disabled={!!clockInTime || !isWorkingHours || !isWeekday}
+            >
+              Clock In
+            </Button>
+            <Button
+              onClick={handleClockOut}
+              disabled={!clockInTime || !!clockOutTime}
+            >
+              Clock Out
+            </Button>
+          </div>
+          <div className='text-center'>
+            <p className='text-lg font-semibold'>
+              Status:{' '}
+              <span
+                className={
+                  clockInTime && !clockOutTime
+                    ? 'text-green-500'
+                    : 'text-red-500'
+                }
+              >
+                {clockInTime && !clockOutTime ? 'At Work' : 'Off Work'}
+              </span>
+            </p>
+            <p className='text-sm'>
+              <Clock className='inline mr-2 h-4 w-4' />
+              Hours Worked Today: {formatTime(totalWorkedToday)}
+            </p>
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='hourly-rate'>Hourly Rate ($)</Label>
+            <Input
+              id='hourly-rate'
+              type='number'
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(Number(e.target.value))}
+              min='0'
+              step='0.01'
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          </div>
+          <div className='text-center space-y-2'>
+            <p className='text-sm'>
+              <DollarSign className='inline mr-2 h-4 w-4' />
+              Daily Earnings: ${calculateDailyEarnings()}
+            </p>
+            <p className='text-sm'>
+              <DollarSign className='inline mr-2 h-4 w-4' />
+              Weekly Earnings: ${calculateWeeklyEarnings()}
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <div className='w-full'>
+            <h3 className='text-lg font-semibold mb-2'>Weekly Summary</h3>
+            <div className='grid grid-cols-5 gap-2'>
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, index) => (
+                <div key={day} className='text-center'>
+                  <div className='text-sm font-medium'>{day}</div>
+                  <div className='text-xs'>
+                    {weeklyHours[index].toFixed(2)}h
+                  </div>
+                  <div className='text-xs'>
+                    ${(weeklyHours[index] * hourlyRate).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
+    </main>
   );
 }
