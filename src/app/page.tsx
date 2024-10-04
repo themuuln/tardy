@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { format, differenceInSeconds } from 'date-fns';
-import { Clock, Calendar, DollarSign, User } from 'lucide-react';
+import { differenceInSeconds, format } from 'date-fns';
+import { Calendar, Clock, DollarSign } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type Employee = {
   name: string;
@@ -29,7 +29,7 @@ export default function Component() {
   const [totalWorkedToday, setTotalWorkedToday] = useState(0);
   const [weeklyHours, setWeeklyHours] = useState<number[]>([0, 0, 0, 0, 0]);
   const [hourlyRate, setHourlyRate] = useState(15);
-  const [employee, setEmployee] = useState<Employee>({
+  const [employee] = useState<Employee>({
     name: 'Temuulen Undrakhbayar',
     position: 'Software Developer',
     imageUrl: 'https://avatars.githubusercontent.com/u/75017829?v=4',
