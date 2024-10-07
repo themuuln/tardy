@@ -22,6 +22,46 @@ type Employee = {
   imageUrl: string;
 };
 
+type StoredData = {
+  clockInTime: string | null;
+  clockOutTime: string | null;
+  totalWorkedToday: number;
+  weeklyHours: number[];
+  hourlyRate: number;
+};
+
+const STORAGE_KEY = 'timeTrackerData';
+
+const loadStoredData = (): StoredData => {
+  if (typeof window === 'undefined') return getInitialData();
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return getInitialData();
+
+  const data = JSON.parse(stored);
+  return {
+    ...data,
+    clockInTime: data.clockInTime
+      ? new Date(data.clockInTime).toISOString()
+      : null,
+    clockOutTime: data.clockOutTime
+      ? new Date(data.clockOutTime).toISOString()
+      : null,
+  };
+};
+
+const getInitialData = (): StoredData => ({
+  clockInTime: null,
+  clockOutTime: null,
+  totalWorkedToday: 0,
+  weeklyHours: [0, 0, 0, 0, 0],
+  hourlyRate: 15,
+});
+
+const saveToStorage = (data: StoredData) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
+
 export default function Component() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [clockInTime, setClockInTime] = useState<Date | null>(null);
@@ -34,6 +74,30 @@ export default function Component() {
     position: 'Software Developer',
     imageUrl: 'https://avatars.githubusercontent.com/u/75017829?v=4',
   });
+
+  // Load stored data on initial render
+  useEffect(() => {
+    const storedData = loadStoredData();
+    if (storedData.clockInTime)
+      setClockInTime(new Date(storedData.clockInTime));
+    if (storedData.clockOutTime)
+      setClockOutTime(new Date(storedData.clockOutTime));
+    setTotalWorkedToday(storedData.totalWorkedToday);
+    setWeeklyHours(storedData.weeklyHours);
+    setHourlyRate(storedData.hourlyRate);
+  }, []);
+
+  // Save data whenever it changes
+  useEffect(() => {
+    const dataToStore: StoredData = {
+      clockInTime: clockInTime?.toISOString() || null,
+      clockOutTime: clockOutTime?.toISOString() || null,
+      totalWorkedToday,
+      weeklyHours,
+      hourlyRate,
+    };
+    saveToStorage(dataToStore);
+  }, [clockInTime, clockOutTime, totalWorkedToday, weeklyHours, hourlyRate]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
